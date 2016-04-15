@@ -30,7 +30,7 @@ Jam Wifi Networks That Your Wireless Card Can Reach.
  ```
  Looking at this help message a suggested way to call the script is
  ```
- $ sudo ./jammer -y -e -d 20
+ $ sudo ./jammer -y -s -d 20
  ```
  
  
