@@ -15,13 +15,16 @@ There will be updates as soon as I fix something or make a nice improvement
 Not that anyone will see this
 
 ```
-Jammer v0.2
+Jammer v0.3
+
+
 Usage: jammer [OPTION] ... 
 Jam Wifi Networks That Your Wireless Card Can Reach.
 
  -d, --deauths: Set the number of deauthentications for each station. Default is 10
  -y, --yes: Make 'Yes' the answer for everything the script asks
  -s, --endless: When reaching the end of the list, start again
+ -f, --whitelist: A file with ESSID's to ignore during the attack
  -k, --keep: Keep the scan files after the script ends
  -n, --name: Choose the names the scan files are saved as
  -e, --ethernet: Set the name for the ethernet interface. Default is 'eth0'
@@ -30,7 +33,7 @@ Jam Wifi Networks That Your Wireless Card Can Reach.
  ```
  Looking at this help message a suggested way to call the script is
  ```
- $ sudo ./jammer -y -s -d 20
+ $ sudo ./jammer -y -s -d 20 -f whitelist.txt
  ```
  
  

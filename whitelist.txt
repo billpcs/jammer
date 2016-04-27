@@ -1,0 +1,4 @@
+"Some wifi with spaces"
+"Some_other_wifi_name"
+"Always place quotes"
+"And each name in its own line"
