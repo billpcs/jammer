@@ -9,7 +9,7 @@
 # SOFTWARE
 
 # Current Version
-VERSION=v0.3
+VERSION=v0.4
 
 # Default name for wireless interface
 W_INT=wlan0
@@ -31,9 +31,6 @@ YES_TO_ALL=0
 
 # If 1 we do not remove the files after the end
 KEEP_SCAN_FILES=0
-
-# SCAN TIME
-SCAN_TIME=60
 
 # Decide if the program is an endless loop
 ENDLESS=0
