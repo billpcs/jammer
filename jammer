@@ -292,12 +292,12 @@ case $key in
     ;;
     -e|--ethernet)
         E_INT="$2"
-        echo -e "{PROMPT}${GREEN}Setting ethernet interface name to $E_INT ${NC}"
+        echo -e "${PROMPT}${GREEN}Setting ethernet interface name to $E_INT ${NC}"
         shift
     ;;
     -w|--wireless)
         W_INT="$2"
-        echo -e "{PROMPT}${GREEN}Setting wireless interface name to $W_INT ${NC}"
+        echo -e "${PROMPT}${GREEN}Setting wireless interface name to $W_INT ${NC}"
         shift
     ;;
     -h|--help)
