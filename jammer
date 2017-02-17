@@ -183,6 +183,8 @@ function show_help {
     printf ": Set the name for the ethernet interface. Default is 'eth0'\n"
     printf "${GREEN} -w, --wireless${NC}"
     printf ": Set the name for the wireless interface. Default is 'wlan0'\n"
+    printf "${GREEN} --spoof-mac${NC}"
+    printf ": Try to change MACs using macchanger\n"
     printf "${GREEN} -h, --help${NC}"
     printf ": Show this help message\n"
     echo

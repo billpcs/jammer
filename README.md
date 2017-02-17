@@ -15,7 +15,7 @@ There will be updates as soon as I fix something or make a nice improvement
 Not that anyone will see this
 
 ```
-Jammer v0.3
+Jammer v0.5
 
 
 Usage: jammer [OPTION] ... 
@@ -29,6 +29,7 @@ Jam Wifi Networks That Your Wireless Card Can Reach.
  -n, --name: Choose the names the scan files are saved as
  -e, --ethernet: Set the name for the ethernet interface. Default is 'eth0'
  -w, --wireless: Set the name for the wireless interface. Default is 'wlan0'
+ --spoof-mac: Try to change MACs using macchanger
  -h, --help: Show this help message
  ```
  Looking at this help message a suggested way to call the script is
