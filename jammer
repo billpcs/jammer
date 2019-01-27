@@ -11,50 +11,50 @@
 # Current Version
 VERSION="v0.5"
 
-# Current and static name for wireless interface
+# Variable and static names for Wireless interface
 W_INT="wlan0"
 W_INT_STATIC="wlan0"
 
-# Current and static name for ethernet interface
+# Variable and static names for Ethernet interface
 E_INT="eth0"
 E_INT_STATIC="eth0"
 
 
-# Base name for scan files
+# base name for scan files
 NAME=jam_scan
 
-# Regex for is-number check
+# regex for is-number check
 re='^[0-9]+$'
 
-# Default DeAuth times for each MAC address
+# default DeAuth times for each MAC address
 DE_AUTH_NUMBER=10
 
-# Try to change macs with macchanger
+# try to change macs with macchanger
 CHANGE_MACS=0
 
-# Yes to all variable
+# yes to all variable
 YES_TO_ALL=0
 
-# If 1 we do not remove the files after the end
+# if 1, do not delete the files at the end
 KEEP_SCAN_FILES=0
 
-# Decide if the program is an endless loop
+# decide if the program is an endless loop
 ENDLESS=0
 
-# An array of files to whitelist
+# an array of files to white-list
 WHITE_LIST=
 
-# Some colors
+# some colors
 RED='\e[0;31m'
 GREEN='\e[0;32m'
 BROWN='\e[0;33m'
 BOLD='\e[1m'
 NC='\e[0m'
 
-# Prompt
+# prompt
 PROMPT="${BOLD}jam!${NC} "
 
-# Check to see if we have the right permissions
+# check for the right permissions
 function check_perm {
     if (( EUID != 0 )); then
       echo -e "${PROMPT}${RED}Re-run the script, this time with root privileges.${NC}"
@@ -62,20 +62,20 @@ function check_perm {
     fi
 }
 
-# Check if any of the required commands is missing
+# check if any of the required commands is missing
 function check_dep {
     for command in airmon-ng macchanger iwlist awk
     do
       if [[ -z $(which $command) ]]; then
          echo "$command was not found"
-         echo "Consider installing it from the repositories of your distro."
+         echo "Consider installing it from the repositories of your distribution"
          exit 0
       fi
     done
     echo -e "${PROMPT}${GREEN}All dependencies are met, moving on.${NC}"
 }
 
-# Check if argument is number
+# check if argument is number
 function check_number {
     if [[ ! ($1 =~ $re) ]]; then
         echo -e "${PROMPT}${RED}Wrong argument format. Exiting.${NC}"
@@ -84,7 +84,7 @@ function check_number {
     return 1
 }
 
-# Check if array contains element
+# check if array contains element
 function array_contains_element { 
     local array="$1[@]"
     local seeking=$2
@@ -98,9 +98,9 @@ function array_contains_element {
     return $in
 }
 
-# Change the MACs of the machine
+# change the MACs of the machine
 function change_macs {
-    # Change mac address for eth0 interfaces
+    # Change mac address for Ethernet interface
     printf "${PROMPT}Changing MAC for Ethernet Interface\n"
     macchanger -A $E_INT
     # Change mac address and initiate monitor mode
@@ -115,7 +115,7 @@ function change_macs {
     ifconfig $W_INT up
 }
 
-# Reset the MACs and settings and remove files created
+# reset the MACs and settings and remove files created
 function cleanup_and_reset {
     if [[ $CHANGE_MACS -eq 1 ]]; then
         printf "${PROMPT}Reseting the default MAC for Ethernet Interface\n"
@@ -140,7 +140,7 @@ function cleanup_and_reset {
     printf "${PROMPT}Done. Exiting.\n"
 }
 
-# A warning to show before the attack starts
+# a warning before the attack starts
 function warn_before {
     printf "${PROMPT}${GREEN}DONE FINDING TARGETS${NC}\n"
     printf "${PROMPT}${RED}THE ATTACK WILL START IN 5 SECONDS${NC}\n"
@@ -148,8 +148,9 @@ function warn_before {
     sleep 5
 }
 
+# a warning about the interfaces
 function warn_about_interface {
-    printf "${PROMPT}${BROWN}One or more of the intefaces have not been changed\n${NC}"
+    printf "${PROMPT}${BROWN}One or more of the interfaces have not been changed\n${NC}"
     printf "${PROMPT}${BROWN}The detected interfaces are: \n${NC}"
     ls /sys/class/net/ | awk '{print "     ",$1}'
     printf "${PROMPT}${BROWN}The defaults are${NC} $W_INT${BROWN} and ${NC}$E_INT\n"
@@ -161,7 +162,7 @@ function warn_about_interface {
     printf "${PROMPT}${BROWN}Continuing ...${NC}\n"
 }
 
-# Prints the help message
+# prints the help message
 function show_help {
     echo
     echo "Usage: jammer [OPTION] ... "
@@ -242,7 +243,7 @@ function read_file_and_deauth {
     done < ${NAME}_out.txt
 }
 
-# Starts attack, if ENDLESS is 1, goes on forever
+# starts attack, if ENDLESS is 1, goes on forever
 function main_attack {
     read_file_and_deauth 
     if [[ ENDLESS -eq 1 ]]; then
@@ -252,7 +253,7 @@ function main_attack {
 }
 
 
-# A fucntion to print the detected stations from the file
+# a fucntion to print the detected stations from the file
 function show_detected_stations {
     printf "${PROMPT}Detected Stations are:\n"
     awk -F";" '{print NR,$3}' ${NAME}_out.txt 
@@ -265,7 +266,7 @@ echo "Jammer $VERSION"
 echo
 
 
-# Parse the options if there are any
+# parse the options if there are any
 while [[ $# > 0 ]]
 do
 key="$1"
@@ -321,37 +322,37 @@ case $key in
         exit 0
     ;;
 esac
-# Go to the next argument
+# go to the next argument
 shift 
 done
 
 
-# Permissions
+# check permissions
 check_perm
 
-# Dependencies
+# check dependencies
 check_dep
 
-# If the default interfaces have not changed, warn the user
+# if the default interfaces have not changed, warn the user
 if [[ "$E_INT" == "$E_INT_STATIC" ]] || [[ "$W_INT" == "$W_INT_STATIC" ]]; then
     warn_about_interface
 fi
 
-# Trap to clean the files and reset at the end
+# trap to clean the files and reset at the end
 trap cleanup_and_reset EXIT
 
-# Change directory to the place the script is executed from
+# change directory to the place the script is executed from
 cd "$(dirname "$0")"
 
-# Show the station names you want to filter out
+# show the station names you want to filter out
 if [ ${#WHITE_LIST[@]} -ne 0 ]; then
     echo -e "${PROMPT}Whitelisted stations: ${NC}"
     echo "${WHITE_LIST[@]}" | sed -e 's/^ *//' -e 's/ *$//'
 fi
 
 
-# Do the scan and save the found MAC addresses and channels to a file in a known format
-printf "${PROMPT}${GREEN}Scaning the area for active stations${NC}\n"
+# execute scan and save the discovered MAC addresses and channels to a file
+printf "${PROMPT}${GREEN}Scanning the area for active stations${NC}\n"
 scan_area
 
 if [[ $CHANGE_MACS -eq 1 ]]; then
@@ -360,13 +361,13 @@ fi
 
 show_detected_stations
 
-# Check if the user wants no interaction
+# check if the user wants no interaction
 if [[ $YES_TO_ALL -eq 1 ]]; then
     main_attack
     exit 0
 fi
 
-# Else ask the user
+# else ask the user
 printf "${PROMPT}Scan is completed. Start jamming? [Y/n] "
 read answer_start
 case $answer_start in
