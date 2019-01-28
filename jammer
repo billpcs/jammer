@@ -55,7 +55,7 @@ NC='\e[0m'
 PROMPT="${BOLD}jam!${NC} "
 
 # check for the right permissions
-function check_perm {
+check_perm() {
     if (( EUID != 0 )); then
       echo -e "${PROMPT}${RED}Re-run the script, this time with root privileges.${NC}"
       exit 0
@@ -63,7 +63,7 @@ function check_perm {
 }
 
 # check if any of the required commands is missing
-function check_dep {
+check_dep() {
     for command in airmon-ng macchanger iwlist awk
     do
       if [[ -z $(which $command) ]]; then
@@ -76,7 +76,7 @@ function check_dep {
 }
 
 # check if argument is number
-function check_number {
+check_number() {
     if [[ ! ($1 =~ $re) ]]; then
         echo -e "${PROMPT}${RED}Wrong argument format. Exiting.${NC}"
         exit 0
@@ -85,7 +85,7 @@ function check_number {
 }
 
 # check if array contains element
-function array_contains_element { 
+array_contains_element() { 
     local array="$1[@]"
     local seeking=$2
     local in=1
@@ -99,7 +99,7 @@ function array_contains_element {
 }
 
 # change the MACs of the machine
-function change_macs {
+change_macs() {
     # Change mac address for Ethernet interface
     printf "${PROMPT}Changing MAC for Ethernet Interface\n"
     macchanger -A $E_INT
@@ -116,7 +116,7 @@ function change_macs {
 }
 
 # reset the MACs and settings and remove files created
-function cleanup_and_reset {
+cleanup_and_reset() {
     if [[ $CHANGE_MACS -eq 1 ]]; then
         printf "${PROMPT}Reseting the default MAC for Ethernet Interface\n"
         macchanger -p $E_INT
@@ -141,7 +141,7 @@ function cleanup_and_reset {
 }
 
 # a warning before the attack starts
-function warn_before {
+warn_before() {
     printf "${PROMPT}${GREEN}DONE FINDING TARGETS${NC}\n"
     printf "${PROMPT}${RED}THE ATTACK WILL START IN 5 SECONDS${NC}\n"
     printf "${PROMPT}${GREEN}IF YOU WANT TO ABORT DO IT NOW${NC}\n"
@@ -149,7 +149,7 @@ function warn_before {
 }
 
 # a warning about the interfaces
-function warn_about_interface {
+warn_about_interface() {
     printf "${PROMPT}${BROWN}One or more of the interfaces have not been changed\n${NC}"
     printf "${PROMPT}${BROWN}The detected interfaces are: \n${NC}"
     ls /sys/class/net/ | awk '{print "     ",$1}'
@@ -163,7 +163,7 @@ function warn_about_interface {
 }
 
 # prints the help message
-function show_help {
+show_help() {
     echo
     echo "Usage: jammer [OPTION] ... "
     echo "Jam Wifi Networks That Your Wireless Card Can Reach."
@@ -193,7 +193,7 @@ function show_help {
 }
 
 
-function scan_area {
+scan_area() {
     if iwlist $W_INT scanning |
         while IFS= read -r line; do
             [[ "$line" =~ Address ]] && bssid=${line##*ss: }
@@ -221,7 +221,7 @@ function scan_area {
     fi
 }
 
-function deauth {
+deauth() {
     local essid="$1"
     local bssid="$2"
     local channel="$3"
@@ -233,7 +233,7 @@ function deauth {
     fi
 }
 
-function read_file_and_deauth {  
+read_file_and_deauth() {  
     warn_before
     # Read the file, line by line and de-auth each MAC 
     while read -r line
@@ -244,7 +244,7 @@ function read_file_and_deauth {
 }
 
 # starts attack, if ENDLESS is 1, goes on forever
-function main_attack {
+main_attack() {
     read_file_and_deauth 
     if [[ ENDLESS -eq 1 ]]; then
         main_attack 
@@ -254,7 +254,7 @@ function main_attack {
 
 
 # a fucntion to print the detected stations from the file
-function show_detected_stations {
+show_detected_stations() {
     printf "${PROMPT}Detected Stations are:\n"
     awk -F";" '{print NR,$3}' ${NAME}_out.txt 
     printf "\n\n"
