@@ -23,9 +23,6 @@ eint_static="eth0"
 # base name for scan files
 name=jam_scan
 
-# regex for is-number check
-re='^[0-9]+$'
-
 # default DeAuth times for each MAC address
 deauth_number=10
 
@@ -54,31 +51,65 @@ NC='\e[0m'
 # prompt
 prompt="${BOLD}jam!${NC} "
 
-# check for the right permissions
-check_perm() {
-    if (( EUID != 0 )); then
-      echo -e "${prompt}${RED}Re-run the script, this time with root privileges.${NC}"
-      exit 0
-    fi
+# print the first argument in a prompt + newline
+printlnp() {
+    printf "${prompt}%s\n" "$1"
 }
+
+# print the first argument in red
+printred() {
+    printf "${RED}%s${NC}" "$1"
+}
+
+# print the first argument in red
+printgreen() {
+    printf "${GREEN}%s${NC}" "$1"
+}
+
+printbrown() {
+    printf "${BROWN}%s${NC}" "$1"
+}
+
+# print prompt + message in red + newline
+printlnpr() {
+    printlnp "$(printred "$1")"
+}
+
+# print prompt + message in green + newline
+printlnpg() {
+    printlnp "$(printgreen "$1")"
+}
+
+printlnpbr() {
+    printlnp "$(printbrown "$1")"
+}
+
+printintro() {
+    echo
+    echo "Jammer $version"
+    echo
+}
+
 
 # check if any of the required commands is missing
 check_dep() {
     for command in airmon-ng macchanger iwlist awk
     do
       if [[ -z $(which $command) ]]; then
-         echo "$command was not found"
-         echo "Consider installing it from the repositories of your distribution"
-         exit 0
+        printlnpr "'$command' was not found"
+        printlnpr "consider installing it from the repositories of your distribution"
+        exit 0
       fi
     done
-    echo -e "${prompt}${GREEN}All dependencies are met, moving on.${NC}"
+    printlnpg "All dependencies are met, moving on."
 }
 
 # check if argument is number
 check_number() {
+    # regex for is-number check
+    local re='^[0-9]+$'
     if [[ ! ($1 =~ $re) ]]; then
-        echo -e "${prompt}${RED}Wrong argument format. Exiting.${NC}"
+        printlnpr "Wrong argument format. Exiting."
         exit 0
     fi
     return 1
@@ -101,10 +132,10 @@ array_contains_element() {
 # change the MACs of the machine
 change_macs() {
     # Change mac address for Ethernet interface
-    printf "${prompt}Changing MAC for Ethernet Interface\n"
+    printlnp "Changing MAC for Ethernet Interface"
     macchanger -A $eint
     # Change mac address and initiate monitor mode
-    printf "${prompt}Changing MAC for Wireless Interface\n"
+    printlnp "Changing MAC for Wireless Interface"
     ifconfig $wint down
     sleep 1
     macchanger -A $wint
@@ -142,52 +173,56 @@ cleanup_and_reset() {
 
 # a warning before the attack starts
 warn_before() {
-    printf "${prompt}${GREEN}DONE FINDING TARGETS${NC}\n"
-    printf "${prompt}${RED}THE ATTACK WILL START IN 5 SECONDS${NC}\n"
-    printf "${prompt}${GREEN}IF YOU WANT TO ABORT DO IT NOW${NC}\n"
-    sleep 5
+    printlnpg "DONE FINDING TARGETS"
+    sleep 0.5
+    printlnpr "THE ATTACK WILL START IN 5 SECONDS$"
+    sleep 0.5
+    printlnpg "IF YOU WANT TO ABORT DO IT NOW$"
+    sleep 4.5
 }
 
-# a warning about the interfaces
+# if the default interfaces have not changed, warn the user
 warn_about_interface() {
-    printf "${prompt}${BROWN}One or more of the interfaces have not been changed\n${NC}"
-    printf "${prompt}${BROWN}The detected interfaces are: \n${NC}"
-    ls /sys/class/net/ | awk '{print "     ",$1}'
-    printf "${prompt}${BROWN}The defaults are${NC} $wint${BROWN} and ${NC}$eint\n"
-    printf "${prompt}${BROWN}If they do not match, cancel the scan and use -e and -w to set them\n${NC}"
-    if [[ yes_to_all -eq 0 ]]; then
-        printf "${prompt}${BROWN}Waiting 8 seconds to make up your mind${NC}\n"
-        sleep 8
+    if [[ "$eint" == "$eint_static" ]] || [[ "$wint" == "$wint_static" ]]; then
+        printlnpbr "One or more of the interfaces have not been changed"
+        printlnpbr "The detected interfaces are: "
+        ls /sys/class/net/ | awk '{print "     ",$1}'
+        printlnpbr "The defaults are **$wint** and **$eint**"
+        printlnpbr "If they do not match, cancel the scan and use -e and -w to set them"
+        if [[ yes_to_all -eq 0 ]]; then
+            printlnpbr "Waiting 8 seconds to make up your mind"
+            sleep 8
+        fi
+        printlnpbr "Continuing ..."
     fi
-    printf "${prompt}${BROWN}Continuing ...${NC}\n"
 }
 
 # prints the help message
 show_help() {
     echo
     echo "Usage: jammer [OPTION] ... "
-    echo "Jam Wifi Networks That Your Wireless Card Can Reach."
+    echo "Jam Wifi Networks that Your Wireless Card can Reach."
     echo
-    printf "${GREEN} -d, --deauths${NC}"
-    printf ": Set the number of deauthentications for each station. Default is 10\n"
-    printf "${GREEN} -y, --yes${NC}"
-    printf ": Make 'Yes' the answer for everything the script asks\n"
-    printf "${GREEN} -s, --endless${NC}"
-    printf ": When reaching the end of the list, start again\n"
-    printf "${GREEN} -f, --whitelist${NC}"
-    printf ": A file with ESSID's to ignore during the attack\n"
-    printf "${GREEN} -k, --keep${NC}"
-    printf ": Keep the scan files after the script ends\n"
-    printf "${GREEN} -n, --name${NC}"
-    printf ": Choose the names the scan files are saved as\n"
-    printf "${GREEN} -e, --ethernet${NC}"
-    printf ": Set the name for the ethernet interface. Default is 'eth0'\n"
-    printf "${GREEN} -w, --wireless${NC}"
-    printf ": Set the name for the wireless interface. Default is 'wlan0'\n"
-    printf "${GREEN} --spoof-mac${NC}"
-    printf ": Try to change MACs using macchanger\n"
-    printf "${GREEN} -h, --help${NC}"
-    printf ": Show this help message\n"
+    printgreen "-d, --deauths"
+    printf "\t\t: Set the number of deauthentications for each station (default 10)\n"
+    printgreen "-y, --yes"
+    printf "\t\t: Make 'Yes' the answer for everything the script asks\n"
+    printgreen "-s, --endless"
+    printf "\t\t: When reaching the end of the list, start again\n"
+    printgreen "-f, --whitelist"
+    printf "\t\t: A file with ESSID's to ignore during the attack\n"
+    printgreen "-k, --keep"
+    printf "\t\t: Keep the scan files after the script ends\n"
+    printgreen "-n, --name"
+    printf "\t\t: Choose the names the scan files are saved as\n"
+    printgreen "-e, --ethernet"
+    printf "\t\t: Set the name for the ethernet interface. Default is 'eth0'\n"
+    printgreen "-w, --wireless"
+    printf "\t\t: Set the name for the wireless interface. Default is 'wlan0'\n"
+    printgreen "--spoof-mac"
+    printf "\t\t: Try to change MACs using macchanger\n"
+    printgreen "-h, --help"
+    printf "\t\t: Show this help message\n"
     echo
     echo
 }
@@ -222,9 +257,9 @@ scan_area() {
 }
 
 deauth() {
-    local essid="$1"
-    local bssid="$2"
-    local channel="$3"
+    # regex for is-number check
+    local re='^[0-9]+$'
+    declare essid="$1" bssid="$2" channel="$3"
     if [[ "$channel" =~ $re ]]; then
         echo -e ${prompt}Targeting:${RED} "$essid" ${NC} with BSSID: "$bssid" @ ${GREEN}Channel "$channel" ${NC}
         sleep 3
@@ -255,77 +290,79 @@ main_attack() {
 
 # a fucntion to print the detected stations from the file
 show_detected_stations() {
-    printf "${prompt}Detected Stations are:\n"
+    printlnp "Detected Stations are:"
     awk -F";" '{print NR,$3}' ${name}_out.txt
     printf "\n\n"
 }
 
+parse_options() {
+  # parse the options if there are any
+  while [[ $# > 0 ]]
+  do
+  key="$1"
+  case $key in
+      -d|--deauths)
+          deauth_number="$2"
+          check_number $deauth_number
+          printlnpg "Setting deauth number to $deauth_number"
+          shift
+      ;;
+      --spoof-mac)
+          change_macs=1
+          printlnpg "I will try to change your macs"
+      ;;
+      -y|--yes)
+          yes_to_all=1
+          printlnpg "Setting YES as the answer to everything"
+      ;;
+      -s|--endless)
+          endless=1
+          printlnpg "Setting mode to Endless"
+      ;;
+      -f|--whitelist)
+          readarray white_list < "$2"
+          printlnpg "Trying to whitelist the ESSID's in the file $2"
+          shift
+      ;;
+      -k|--keep)
+          keep_scan_files=1
+          printlnpg "Scan files will be kept"
+      ;;
+      -n|--name)
+          name="$2"
+          printlnpg "Setting scan file names to $name"
+          shift
+      ;;
+      -e|--ethernet)
+          eint="$2"
+          printlnpg "Setting ethernet interface name to $eint"
+          shift
+      ;;
+      -w|--wireless)
+          wint="$2"
+          printlnpg "Setting wireless interface name to $wint"
+          shift
+      ;;
+      -h|--help)
+          show_help
+          exit 0
+      ;;
+      *)
+          printlnpr "Unknown option '$1', exiting."
+          exit 0
+      ;;
+  esac
+  # go to the next argument
+  shift
+  done
+}
 
-echo
-echo "Jammer $version"
-echo
 
+# print name and welcome message
+printintro
 
-# parse the options if there are any
-while [[ $# > 0 ]]
-do
-key="$1"
-case $key in
-    -d|--deauths)
-        deauth_number="$2"
-        check_number $deauth_number
-        echo -e "${prompt}${GREEN}Setting deauth number to $deauth_number ${NC}"
-        shift
-    ;;
-    --spoof-mac)
-        change_macs=1
-        echo -e "${prompt}${GREEN}I will try to change your macs${NC}"
-    ;;
-    -y|--yes)
-        yes_to_all=1
-        echo -e "${prompt}${GREEN}Setting YES as the answer to all${NC}"
-    ;;
-    -s|--endless)
-        endless=1
-        echo -e "${prompt}${GREEN}Setting mode to Endless${NC}"
-    ;;
-    -f|--whitelist)
-        readarray white_list < "$2"
-        echo -e "${prompt}${GREEN}Trying to whitelist the ESSID's in the file $2 ${NC}"
-        shift
-    ;;
-    -k|--keep)
-        keep_scan_files=1
-        echo -e "${prompt}${GREEN}Scan files will be kept${NC}"
-    ;;
-    -n|--name)
-        name="$2"
-        echo -e "${prompt}${GREEN}Setting scan file names to $name ${NC}"
-        shift
-    ;;
-    -e|--ethernet)
-        eint="$2"
-        echo -e "${prompt}${GREEN}Setting ethernet interface name to $eint ${NC}"
-        shift
-    ;;
-    -w|--wireless)
-        wint="$2"
-        echo -e "${prompt}${GREEN}Setting wireless interface name to $wint ${NC}"
-        shift
-    ;;
-    -h|--help)
-        show_help
-        exit 0
-    ;;
-    *)
-        echo -e "${prompt}${RED}Unknown option, exiting.${NC}"
-        exit 0
-    ;;
-esac
-# go to the next argument
-shift
-done
-
+# parse options
+parse_options "$@"
 
 # check permissions
 check_perm
@@ -333,26 +370,24 @@ check_perm
 # check dependencies
 check_dep
 
-# if the default interfaces have not changed, warn the user
-if [[ "$eint" == "$eint_static" ]] || [[ "$wint" == "$wint_static" ]]; then
-    warn_about_interface
-fi
-
 # trap to clean the files and reset at the end
 trap cleanup_and_reset EXIT
 
 # change directory to the place the script is executed from
 cd "$(dirname "$0")"
 
+# warn if the inteface was not updated
+warn_about_interface
+
 # show the station names you want to filter out
 if [ ${#white_list[@]} -ne 0 ]; then
-    echo -e "${prompt}Whitelisted stations: ${NC}"
+    printlnp "Whitelisted stations: "
     echo "${white_list[@]}" | sed -e 's/^ *//' -e 's/ *$//'
 fi
 
+printlnpg "Scanning the area for active stations"
 
 # execute scan and save the discovered MAC addresses and channels to a file
-printf "${prompt}${GREEN}Scanning the area for active stations${NC}\n"
 scan_area
 
 if [[ $change_macs -eq 1 ]]; then
