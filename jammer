@@ -90,6 +90,14 @@ printintro() {
     echo
 }
 
+# check for the right permissions
+check_perm() {
+    if [[ $EUID != 0 ]]; then
+      printlnpr "oops! You need root privileges for this."
+      exit 0
+    fi
+}
+
 
 # check if any of the required commands is missing
 check_dep() {
@@ -369,6 +377,8 @@ check_perm
 
 # check dependencies
 check_dep
+
+sleep 1
 
 # trap to clean the files and reset at the end
 trap cleanup_and_reset EXIT
