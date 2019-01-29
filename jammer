@@ -124,29 +124,21 @@ check_number() {
 }
 
 # check if array contains element
-array_contains_element() {
-    local array="$1"
-    local seeking="$2"
-    local is_in=0
-    for element in "${array[@]}"; do
-        element=$( echo "${element}" | sed -e 's/^ *//' -e 's/ *$//' );         
+whitelist_contains_element() {
+    local seeking="$1"
+    for element in "${white_list[@]}"; do
+        element=$( echo "${element}" | sed -e 's/^ *//' -e 's/ *$//' );
         [[ "$element" == "$seeking" ]] && echo "found"
     done 
 }
 
-# change the MACs of the machine
+# change the MAC of wireless interface
 change_macs() {
-    # Change mac address for Ethernet interface
-    printlnp "Changing MAC for Ethernet Interface"
-    macchanger -A $eint
     # Change mac address and initiate monitor mode
     printlnp "Changing MAC for Wireless Interface"
     ifconfig $wint down
     sleep 1
     macchanger -A $wint
-    # Set wlan to monitor mode
-    sleep 1
-    iwconfig $wint mode Monitor
     sleep 1
     ifconfig $wint up
 }
@@ -154,8 +146,6 @@ change_macs() {
 # reset the MACs and settings and remove files created
 cleanup_and_reset() {
     if [[ $change_macs -eq 1 ]]; then
-        printf "${prompt}Reseting the default MAC for Ethernet Interface\n"
-        macchanger -p $eint
         printf "${prompt}Reseting the default MAC for Wireless Interface\n"
         ifconfig $wint down
         sleep 1
@@ -186,14 +176,14 @@ warn_before() {
     sleep 4.5
 }
 
-# if the default interfaces have not changed, warn the user
+# if the default interface has not changed, warn the user
 warn_about_interface() {
-    if [[ "$eint" == "$eint_static" ]] || [[ "$wint" == "$wint_static" ]]; then
-        printlnpbr "One or more of the interfaces have not been changed"
+    if [[ "$wint" == "$wint_static" ]]; then
+        printlnpbr "the default interface has not been changed"
         printlnpbr "The detected interfaces are: "
-        ls /sys/class/net/ | awk '{print "     ",$1}'
-        printlnpbr "The defaults are **$wint** and **$eint**"
-        printlnpbr "If they do not match, cancel the scan and use -e and -w to set them"
+        airmon-ng | sed '/^$/d' | awk '{print $2}' | tail -n +2
+        printlnpbr "The default is **$wint**"
+        printlnpbr "If they do not match, cancel the scan and use -w to set it"
         if [[ yes_to_all -eq 0 ]]; then
             printlnpbr "Waiting 8 seconds to make up your mind"
             sleep 8
@@ -240,7 +230,7 @@ scan_area() {
             [[ "$line" =~ \(Channel ]] && { channel=${line##*nel }; channel=${channel:0:$((${#channel}-1))}; }
             [[ "$line" =~ ESSID ]] && {
                 essid=${line##*ID:}
-                [[ $(array_contains_element "$whitelist" "$essid") ]] && echo "${bssid};${channel};${essid}"
+                [[ -z $(whitelist_contains_element "$essid") ]] && echo "${bssid};${channel};${essid}"
             }
         done > ${name}_out.txt ;
     then
