@@ -360,6 +360,9 @@ check_perm
 # check dependencies
 check_dep
 
+# trap to clean the files and reset at the end
+trap cleanup_and_reset EXIT
+
 # change directory to the place the script is executed from
 cd "$(dirname "$0")"
 
@@ -368,9 +371,6 @@ warn_about_interface
 
 # decide if the MAC will be changed
 change_mac_inter
-
-# trap to clean the files and reset at the end
-trap cleanup_and_reset EXIT
 
 # show the station names that are in the whitelist
 if [ ${#white_list[@]} -ne 0 ]; then
