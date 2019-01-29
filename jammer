@@ -166,7 +166,7 @@ cleanup_and_reset() {
 }
 
 # a warning before the attack starts
-warn_before() {
+warn_before_attack() {
     printlnpg "DONE FINDING TARGETS"
     sleep 0.5
     printlnpr "THE ATTACK WILL START IN 5 SECONDS"
@@ -230,8 +230,9 @@ show_help() {
     echo
 }
 
-
 scan_area() {
+    # adjusted from this amazing stackoverflow answer
+    # https://stackoverflow.com/questions/25394772/parsing-iwlist-scan-using-bash
     if iwlist $wint scanning |
         while IFS= read -r line; do
             [[ "$line" =~ Address ]] && bssid=${line##*ss: }
@@ -248,6 +249,7 @@ scan_area() {
     fi
 }
 
+# deauthenticate given @inputs: essid, bssid, channel
 deauth() {
     # regex for is-number check
     local re='^[0-9]+$'
@@ -260,9 +262,9 @@ deauth() {
     fi
 }
 
+# Read the file, line by line and de-auth each MAC
 read_file_and_deauth() {
-    warn_before
-    # Read the file, line by line and de-auth each MAC
+    warn_before_attack 
     while read -r line
     do
         read bssid channel essid <<< $(echo $line | awk -F";" '{print $1 " " $2 " " $3}')
@@ -279,7 +281,6 @@ main_attack() {
     fi
 }
 
-
 # a function to print the detected stations from the file
 show_detected_stations() {
     printlnp "Detected Stations are:"
@@ -287,8 +288,8 @@ show_detected_stations() {
     printf "\n\n"
 }
 
+# parse the options if there are any
 parse_options() {
-  # parse the options if there are any
   while [[ $# > 0 ]]
   do
   key="$1"
