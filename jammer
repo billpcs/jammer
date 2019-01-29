@@ -125,16 +125,13 @@ check_number() {
 
 # check if array contains element
 array_contains_element() {
-    local array="$1[@]"
-    local seeking=$2
-    local in=1
-    for element in "${!array}"; do
-        if [[ $element == $seeking ]]; then
-            in=0
-            break
-        fi
-    done
-    return $in
+    local array="$1"
+    local seeking="$2"
+    local is_in=0
+    for element in "${array[@]}"; do
+        element=$( echo "${element}" | sed -e 's/^ *//' -e 's/ *$//' );         
+        [[ "$element" == "$seeking" ]] && echo "found"
+    done 
 }
 
 # change the MACs of the machine
@@ -243,18 +240,7 @@ scan_area() {
             [[ "$line" =~ \(Channel ]] && { channel=${line##*nel }; channel=${channel:0:$((${#channel}-1))}; }
             [[ "$line" =~ ESSID ]] && {
                 essid=${line##*ID:}
-                #array_contains_element $white_list $essid == 0 && echo "${bssid};${channel};${essid}"
-                found=0
-                for element in "${white_list[@]}"; do
-                    element=$( echo "${element}" | sed -e 's/^ *//' -e 's/ *$//' );
-                    if [[ $element == $essid ]]; then
-                        found=1
-                        break
-                    fi
-                done
-                if [[ $found -eq 0 ]]; then
-                    echo "${bssid};${channel};${essid}"
-                fi
+                [[ $(array_contains_element "$whitelist" "$essid") ]] && echo "${bssid};${channel};${essid}"
             }
         done > ${name}_out.txt ;
     then
