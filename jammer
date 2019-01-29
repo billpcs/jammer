@@ -238,7 +238,7 @@ scan_area() {
             [[ "$line" =~ \(Channel ]] && { channel=${line##*nel }; channel=${channel:0:$((${#channel}-1))}; }
             [[ "$line" =~ ESSID ]] && {
                 essid=${line##*ID:}
-                [[ $(whitelist_contains_element "$essid") ]] && echo "${bssid};${channel};${essid}"
+                [[ -z $(whitelist_contains_element "$essid") ]] && echo "${bssid};${channel};${essid}"
             }
         done > ${temp_name};
     then
