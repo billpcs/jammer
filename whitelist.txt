@@ -1,5 +1,5 @@
-Some ssid with spaces
-Some_other_ssid
-Always place quotes
-And each name in its own line
+"Some ssid with spaces"
+"Some_other_ssid"
+"Always place quotes"
+"And each name in its own line"
 
