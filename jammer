@@ -22,7 +22,7 @@ name=jam-scan
 temp_name=$(mktemp "${name}-XXX")
 
 # default DeAuth times for each MAC address
-deauth_number=10
+deauth_number=5
 
 # try to change macs with macchanger
 change_macs=0
@@ -209,7 +209,7 @@ show_help() {
     echo "Jam Wifi Networks that Your Wireless Card can Reach."
     echo
     printgreen "-d, --deauths"
-    printf "\t\t: Set the number of deauthentications for each station (default 10)\n"
+    printf "\t\t: Set the number of deauthentications for each station (default ${deauth_number})\n"
     printgreen "-y, --yes"
     printf "\t\t: Make 'Yes' the answer for everything the script asks\n"
     printgreen "-s, --endless"
